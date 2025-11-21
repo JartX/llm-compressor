@@ -8,7 +8,7 @@ HuggingFace datasets, custom JSON/CSV files, and DVC-managed datasets.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union, Dict, List, Optional, Union
 
 from transformers import DefaultDataCollator
 
@@ -227,6 +227,10 @@ class DatasetArguments(CustomDatasetArguments):
             "When False, quantization is disabled during forward pass in calibration. "
             "Default is set to True."
         },
+    )
+    device_map: Optional[Union[str, Dict[str, int]]] = field(
+        default=None,
+        metadata={"help": "Device map for model dispatch"},
     )
 
     def is_dataset_provided(self) -> bool:

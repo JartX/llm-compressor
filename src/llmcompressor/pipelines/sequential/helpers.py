@@ -2,9 +2,10 @@ import contextlib
 import inspect
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import torch
+from accelerate import dispatch_model
 from accelerate.hooks import remove_hook_from_module
 from compressed_tensors.utils import (
     has_offloaded_params,
@@ -516,18 +517,23 @@ def get_sequential_ancestors(model: Module, targets: Set[Module]) -> Set[Module]
     return ancestors
 
 
-def dispatch_for_sequential(model: PreTrainedModel) -> PreTrainedModel:
+def dispatch_for_sequential(
+    model: PreTrainedModel, device_map: Optional[Union[str, Dict[str, int]]] = None
+) -> PreTrainedModel:
     """
     Dispatch a model for sequential calibration using a sequential pipeline.
     The model will be offloaded to the CPU and dispatched to CUDA/XPU device
     if available. Removes any existing hooks.
 
     :param model: model to dispatch
+    :param device_map: device map to dispatch model to
     :return: dispatched model
     """
     remove_dispatch(model)
 
-    if torch.cuda.is_available():
+    if device_map:
+        dispatch_model(model, device_map=device_map)
+    elif torch.cuda.is_available():
         offloaded_dispatch(model, execution_device=torch.device("cuda:0"))
     elif hasattr(torch, "xpu") and torch.xpu.is_available():
         offloaded_dispatch(model, execution_device=torch.device("xpu:0"))
